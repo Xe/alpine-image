@@ -1,15 +1,18 @@
 variable "mirror" {
-  default = "https://mirrors.aliyun.com/alpine"
+  default = "http://dl-cdn.alpinelinux.org/alpine"
 }
 variable "version" {
-  default = "3.12.0"
+  default = "3.13.5"
+}
+variable "ver" {
+  default = "edge"
 }
 variable "flavor" {
   default = "virt"
 }
 
 variable "size" {
-  default = "40G"
+  default = "10G"
 }
 variable "format" {
   default = "qcow2"
@@ -31,12 +34,12 @@ variable "dist" {
 locals {
   ver = regex_replace(var.version, "[.][0-9]+$", "")
   checksums = {
-    "alpine-virt-3.12.0-x86_64.iso": "sha256:fe694a34c0e2d30b9e5dea7e2c1a3892c1f14cb474b69cc5c557a52970071da5"
+    "alpine-virt-3.13.5-x86_64.iso": "sha256:e6bbcab275b704bc6521781f2342fff084700b458711fdf315a5816d9885943c"
   }
 }
 
 source "qemu" "alpine" {
-  iso_url = "${var.mirror}/v${local.ver}/releases/x86_64/alpine-virt-${var.version}-x86_64.iso"
+  iso_url = "${var.mirror}/${local.ver}/releases/x86_64/alpine-virt-${var.version}-x86_64.iso"
   iso_checksum = local.checksums["alpine-virt-${var.version}-x86_64.iso"]
   // display = "cocoa"
   headless = true
@@ -72,17 +75,27 @@ build {
 <<-EOF
 : $${ALPINE_MIRROR:=https://mirrors.aliyun.com/alpine}
 : $${ALPINE_FLAVOR:=virt}
-: $${ALPINE_VER:=$(egrep -o 'VERSION_ID=[0-9]+[.]+[0-9]+' /etc/os-release | egrep -o '[0-9]+[.]+[0-9]+')}
 echo Building $${ALPINE_VER} using $${ALPINE_MIRROR}
-echo $${ALPINE_MIRROR}/v$${ALPINE_VER}/main > /etc/apk/repositories
-echo $${ALPINE_MIRROR}/v$${ALPINE_VER}/community >> /etc/apk/repositories
+echo $${ALPINE_MIRROR}/$${ALPINE_VER}/main > /etc/apk/repositories
+echo $${ALPINE_MIRROR}/$${ALPINE_VER}/community >> /etc/apk/repositories
 rc-update add networking
 ERASE_DISKS=/dev/vda setup-disk -m sys -s 0 -k $${ALPINE_FLAVOR} /dev/vda
+
+mount /dev/vda2 /mnt
+mount /dev/vda1 /mnt/boot
+
+chroot /mnt /bin/sh -c 'apk add shadow sudo cloud-init cloud-init-openrc'
+chroot /mnt /bin/sh -c 'rc-update add cloud-init'
+sed -i '/PermitRootLogin/d' /mnt/etc/ssh/sshd_config
+
+umount /mnt/boot
+umount /mnt
 EOF
     ]
     environment_vars = [
       "ALPINE_MIRROR=${var.mirror}",
       "ALPINE_FLAVOR=${var.flavor}",
+      "ALPINE_VER=${var.ver}",
     ]
   }
 }

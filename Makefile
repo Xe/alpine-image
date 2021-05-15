@@ -1,10 +1,10 @@
-SHELL=/bin/bash
+SHELL=bash
 .PRECIOUS: packer/alpine/virt/%/packer-alpine packer/alpine/lts/%/packer-alpine
 
 arch?=x86_64
-version?=3.12.0
+version?=3.13.5
 ver:=$(basename $(version))
-mirror?=https://mirrors.aliyun.com/alpine
+mirror?=https://dl-cdn.alpinelinux.org/alpine
 
 flavor?=virt
 format?=raw
