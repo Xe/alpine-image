@@ -12,7 +12,7 @@ variable "flavor" {
 }
 
 variable "size" {
-  default = "10G"
+  default = "2G"
 }
 variable "format" {
   default = "qcow2"
@@ -85,11 +85,9 @@ ERASE_DISKS=/dev/vda setup-disk -m sys -s 0 -k $${ALPINE_FLAVOR} /dev/vda
 mount /dev/vda2 /mnt
 mount /dev/vda1 /mnt/boot
 
-chroot /mnt /bin/sh -c 'apk add shadow sudo cloud-init cloud-init-openrc'
-chroot /mnt /bin/sh -c 'rc-update add cloud-init default'
-chroot /mnt /bin/sh -c 'rc-update add cloud-init-local default'
-chroot /mnt /bin/sh -c 'rc-update add cloud-config default'
-chroot /mnt /bin/sh -c 'rc-update add cloud-final default'
+chroot /mnt /bin/sh -c 'apk add cloud-init cloud-init-openrc util-linux chrony chrony-openrc bash'
+chroot /mnt /bin/sh -c 'setup-cloud-init'
+chroot /mnt /bin/sh -c 'rc-update add chronyd default'
 sed -i '/PermitRootLogin/d' /mnt/etc/ssh/sshd_config
 
 umount /mnt/boot
